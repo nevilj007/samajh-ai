@@ -38,7 +38,7 @@ services:
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: chatbot
       POSTGRES_HOST: db
-      OLLAMA_HOST: localhost  # Ollama runs inside the same container
+      OLLAMA_HOST: localhost 
     volumes:
       - .:/app
 
