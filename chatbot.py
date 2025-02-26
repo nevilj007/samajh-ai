@@ -17,11 +17,11 @@ from ollama import Client
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
-# Connect to the Ollama container inside Docker
+
 ollama_client = Client(host='http://localhost:11434')
 
 
-# In-memory storage for conversations
+
 conversations: Dict[str, Dict[str, Any]] = {}
 load_dotenv()
 api_key = os.getenv("BLAND_API_KEY")
@@ -52,8 +52,8 @@ def extract_text_blocks(pdf_path):
     text = ""
 
     for page in doc:
-        blocks = page.get_text("blocks")  # Extract text as blocks
-        blocks.sort(key=lambda b: (b[1], b[0]))  # Sort by (y, x) coordinates
+        blocks = page.get_text("blocks")  
+        blocks.sort(key=lambda b: (b[1], b[0]))  
 
         for block in blocks:
             text += block[4] + "\n"
@@ -64,7 +64,7 @@ def extract_text_blocks(pdf_path):
 
 
 
-# Initialize the agent for prompt generation
+
 db_url = "postgresql+psycopg://ai:ai@localhost:5532/ai"
 prompt = {}
 class Transcript(BaseModel):
@@ -96,7 +96,7 @@ class Message(BaseModel):
 
 
 
-# Add new Pydantic model for prompt generation
+
 class PromptData(BaseModel):
     call_output: str = Form(...)
     suggestions: str = Form(...)
@@ -105,7 +105,7 @@ class PromptData(BaseModel):
 async def home(request: Request):
     return templates.TemplateResponse("prompt_generator2.html", {"request": request})
 
-# Update your prompt generator endpoint
+
 @app.post("/generate_prompt")
 async def generate_prompt(
         request: Request,
@@ -164,7 +164,7 @@ async def generate_prompt(
     })
 
 
-# Update your make_call endpoint
+
 @app.post("/make_call")
 async def make_call(
         request: Request,
@@ -173,13 +173,13 @@ async def make_call(
         final_prompt: str = Form(...),
         questions: str = Form(...)
 ):
-    # 🔹 Step 1: Download the PDF
+  
     pdf_path = download_pdf(knowledge_base_url)
 
-    # 🔹 Step 2: Extract text using PyMuPDF (default method)
+   
     formatted_text = extract_text_blocks(pdf_path)
 
-    # 🔹 Delete the downloaded PDF after processing (Optional)
+   
     os.remove(pdf_path)
     headers = {
         'authorization': api_key
@@ -209,7 +209,7 @@ async def make_call(
         'record': True,
         'reduce_latency': True,
         'amd': True,
-        'model': 'base'  # Using the 'base' model as it follows scripts/procedures most effectively
+        'model': 'base'  
     }
 
     response = requests.post('https://api.bland.ai/v1/calls', json=data, headers=headers)
@@ -226,19 +226,19 @@ import json
 
 
 def json_to_text(text_file_path):
-    # Load the JSON data from the file as a string
+   
     with open(text_file_path, 'r', encoding='utf-8') as file:
         data_str = file.read()
 
-    # Parse the JSON string into a dictionary
+    
     data = json.loads(data_str)
 
-    # Prepare the text content by iterating over the dictionary items
+   
     text_content = ""
     for key, value in data.items():
         text_content += f"{key}: {value}\n"
 
-    # Write the text content to an output file (or overwrite the original file if desired)
+  
 
     with open(text_file_path, 'w', encoding='utf-8') as file:
         file.write(text_content)
@@ -250,7 +250,7 @@ def json_to_text(text_file_path):
 
 
 
-# Function to read text from a file
+
 def read_text_file(filepath):
     with open(filepath, 'rb') as file:
         content = file.read()
@@ -258,11 +258,11 @@ def read_text_file(filepath):
     try:
         return content.decode('utf-8')
     except UnicodeDecodeError:
-        # Replace problematic characters with a replacement character
+       
         return content.decode('utf-8', errors='replace')
 
 
-# Main function to interact with Gemini
+
 def query_gemini(file_path):
     file_text = read_text_file(file_path)
 
@@ -338,7 +338,7 @@ def final_reply(reply_1, question):
 
 
 
-# 🔹 Save conversation data to PostgreSQL
+
 async def save_conversation(call_id, transcripts, summary, audio_url,phone_number):
     conn = await get_db_connection()
     await conn.execute(
@@ -352,7 +352,7 @@ async def save_conversation(call_id, transcripts, summary, audio_url,phone_numbe
     )
     await conn.close()
 
-# 🔹 Save each question-response pair to PostgreSQL
+
 async def save_call_responses(call_id, question, response):
     conn = await get_db_connection()
     await conn.execute(
@@ -378,19 +378,19 @@ async def webhook(data: WebhookData):
         print(conversations[call_id])
         b=conversations[call_id]['to_phone']
         print(b)
-        # Extract the conversation from the transcripts
+       
         conversation = []
         for transcript in conversations[call_id]['transcripts']:
             conversation.append(f"{transcript['user'].capitalize()}: {transcript['text']}")
 
-        # Join the conversation lines
+      
         conversation_text = "\n".join(conversation)
 
 
-        # 🔥 Create a temporary file
+       
         with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="w", encoding="utf-8") as temp_file:
             temp_file.write(conversation_text)
-            temp_file_path = temp_file.name  # Get file path before closing
+            temp_file_path = temp_file.name  
         BLAND_API_KEY = api_key
 
 
@@ -415,7 +415,7 @@ async def webhook(data: WebhookData):
         transcripts=read_text_file(temp_file_path)
         summary=query_gemini(temp_file_path)
         audio_url=data['url']
-        # Save to PostgreSQL
+       
         await save_conversation(call_id,transcripts,summary,audio_url,b)
 
         print(summary)
@@ -426,7 +426,7 @@ async def webhook(data: WebhookData):
         print(len(question_lists))
         print(question_lists)
         for i in range(len(question_lists)):
-            if question_lists[i].strip():  #  Check if question is NOT empty
+            if question_lists[i].strip(): 
                 response = final_reply(summary, question_lists[i])
                 print(question_lists[i])
                 print(response)
@@ -438,17 +438,17 @@ async def webhook(data: WebhookData):
 
 
 
-# New route to list Excel files
+
 @app.get("/files", response_class=HTMLResponse)
 async def list_files(request: Request):
     conn = await get_db_connection()
 
-    # 🔹 Get all available call IDs from PostgreSQL
+    
     call_ids = await conn.fetch("SELECT call_id FROM conversations")
 
     await conn.close()
 
-    # 🔹 Extract call_id values
+   
     call_list = [record["call_id"] for record in call_ids]
 
     return templates.TemplateResponse(
@@ -456,7 +456,7 @@ async def list_files(request: Request):
     )
 
 
-# New route to download files
+
 from fastapi.responses import StreamingResponse
 from io import BytesIO
 from openpyxl import Workbook
@@ -465,7 +465,7 @@ from openpyxl import Workbook
 async def download_file(call_id: str):
     conn = await get_db_connection()
 
-    # 🔹 Fetch Data from PostgreSQL
+  
     responses = await conn.fetch(
         "SELECT question, response FROM call_responses WHERE call_id = $1", call_id
     )
@@ -484,17 +484,17 @@ async def download_file(call_id: str):
 
     await conn.close()
 
-    # 🔹 Generate Excel File in Memory
+  
     wb = Workbook()
     ws = wb.active
     ws.title = "Call Data"
 
-    # 🔹 Add Questions & Responses
+   
     for i, row in enumerate(responses):
         ws[f'A{i+1}'] = row['question']
         ws[f'B{i+1}'] = row['response']
 
-    # 🔹 Add Summary, Phone Number, and Audio URL
+   
     ws.append([])
     ws.append(["Summary", summary if summary else "N/A"])
     ws.append([])
@@ -502,12 +502,12 @@ async def download_file(call_id: str):
     ws.append([])
     ws.append(["Audio URL", audio_url if audio_url else "N/A"])
 
-    # 🔹 Save Excel to Memory
+    
     excel_stream = BytesIO()
     wb.save(excel_stream)
     excel_stream.seek(0)
 
-    # 🔹 Use StreamingResponse to return the in-memory file
+   
     return StreamingResponse(
         excel_stream,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
