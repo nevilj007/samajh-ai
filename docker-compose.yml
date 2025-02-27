@@ -24,6 +24,7 @@ services:
 
   app:
     build: .
+    image: my-dockerhub-username/chatbot-app:latest
     container_name: chatbot_app
     restart: always
     depends_on:
