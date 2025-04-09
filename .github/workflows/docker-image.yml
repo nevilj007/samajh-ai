@@ -1,6 +1,7 @@
 name: Build and Push Docker Image
 
 on:
+  workflow_dispatch:  # ✅ Required to enable BuildBot triggers
   push:
     branches:
       - main
